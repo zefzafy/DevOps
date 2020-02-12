@@ -1,0 +1,25 @@
+pipeline {
+  agent any
+  stages {
+    stage('SCM Clone') {
+      steps {
+        git(url: 'https://github.com/zefzafy/devops.git', branch: '**', credentialsId: 'GitHub')
+      }
+    }
+    stage('Image Build') {
+      steps {
+    script{
+      withDockerRegistry(credentialsId: 'dockerhub', url: 'https://index.docker.io/') {
+        def customImage = docker.build("clerck/nginx:${BUILD_ID}")
+        }
+          }
+      }
+    }
+    stage('Kube Update'){
+      steps {
+     withKubeConfig(credentialsId: 'kub', serverUrl: 'https://192.168.177.130:6443') {
+     sh 'kubectl set image deployments/hello-kubernetes-custom hello-kubernetes=clerck/nginx:${BUILD_ID}'
+     }
+   }
+  }
+}}
